@@ -1,0 +1,29 @@
+{
+  "name": "free-mail-sender",
+  "version": "1.0.0",
+  "description": "This Strapi plugin is designed to streamline the process of sending emails through the REST API. It enables you to send emails using different providers and customize the email content to suit your specific needs.",
+  "strapi": {
+    "name": "free-mail-sender",
+    "description": "This Strapi plugin is designed to streamline the process of sending emails through the REST API. It enables you to send emails using different providers and customize the email content to suit your specific needs.",
+    "kind": "plugin",
+    "displayName": "Mail Sender"
+  },
+  "dependencies": {
+    "nodemailer": "^6.9.13"
+  },
+  "devDependencies": {},
+  "peerDependencies": {},
+  "author": {
+    "name": "Jumorap"
+  },
+  "maintainers": [
+    {
+      "name": "Jumorap"
+    }
+  ],
+  "engines": {
+    "node": ">=18.0.0 <=20.x.x",
+    "npm": ">=6.0.0"
+  },
+  "license": "MIT"
+}
