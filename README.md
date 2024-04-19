@@ -98,6 +98,18 @@ export default ({ env }) => ({
   },
 });
 ```
+
+The plugin configuration **requires** the email and password of the sender. You can set them in the `.env` file using the variables `EMAIL_SENDER` and `PASSWORD_SENDER` as follows:
+
+`.env`
+```env
+JWT_SECRET=...
+
+#...
+EMAIL_SENDER=yourMail@provider.com
+PASSWORD_SENDER=superSecretPasswordMailHere
+```
+
 ## Configuration options extended
 1. `provider` - 'gmail' | 'outlook' | 'yahoo' | 'zoho' | 'sendgrid' | 'mailgun' | 'yandex' | 'protonmail' | 'icloud' | 'aol' | 'zohomail' | 'gmx' -> DEFAULT: 'outlook'
 

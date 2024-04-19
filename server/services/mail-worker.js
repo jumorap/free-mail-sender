@@ -3,6 +3,11 @@
 const nodemailer = require("nodemailer");
 
 const checkFields = (fields) => {
+  /**
+   * Check if the required fields are filled
+   * @param {Object} fields - The fields to check
+   * @returns {Object} - The allowed status and error message
+   */
   if (!fields.toEmail) return { allowed: false, error: 'To email is required' };
   if (!fields.subject) return { allowed: false, error: 'Subject is required' };
   if (!fields.mailText) return { allowed: false, error: 'Html text is required' };
@@ -11,6 +16,13 @@ const checkFields = (fields) => {
 }
 
 const emailSenderWorker = (ctx, fields) => {
+  /**
+   * Send the email with the required fields to the recipient using the nodemailer library
+   * and the email sender credentials from the .env file
+   * @param {Object} ctx - The context object to send the response
+   * @param {Object} fields - The fields to send the email
+   * @returns {Object} - The response object in case of an error
+   */
   let transporter = nodemailer.createTransport({
     host: fields.hostProvider,
     port: 587,
@@ -35,25 +47,36 @@ const emailSenderWorker = (ctx, fields) => {
 
 module.exports = ({ strapi }) => ({
   sendEmail(request) {
+    /**
+     * Create the email fields and send the email if the required fields are filled
+     * @param {Object} request - The request object with the email fields
+     * @returns {Object} - The response object with the message sent status
+     */
     const ctx = strapi.requestContext.get();
     ctx.body = { message: 'Message sent', sent: true };
 
-    const defaultProvider = 'outlook'
-    const provider = strapi.plugin('free-mail-sender')?.config('provider').toLowerCase() || defaultProvider;
-    let hostProvider = '';
+    const defaultProvider = 'outlook';
+    const providerConfig = strapi.plugin('free-mail-sender')?.config('provider')?.toLowerCase();
+    const provider = providerConfig || defaultProvider;
 
-    if (provider === 'gmail') hostProvider = 'smtp.gmail.com ';
-    else if (provider === 'outlook') hostProvider = 'smtp.office365.com';
-    else if (provider === 'yahoo') hostProvider = 'smtp.mail.yahoo.com';
-    else if (provider === 'zoho') hostProvider = 'smtp.zoho.com';
-    else if (provider === 'sendgrid') hostProvider = 'smtp.sendgrid.net';
-    else if (provider === 'mailgun') hostProvider = 'smtp.mailgun.org';
-    else if (provider === 'yandex') hostProvider = 'smtp.yandex.com';
-    else if (provider === 'protonmail') hostProvider = 'smtp.protonmail.com';
-    else if (provider === 'icloud') hostProvider = 'smtp.mail.me.com';
-    else if (provider === 'aol') hostProvider = 'smtp.aol.com';
-    else if (provider === 'zohomail') hostProvider = 'smtp.zoho.eu';
-    else if (provider === 'gmx') hostProvider = 'smtp.gmx.com';
+    let hostProvider = '';
+    const providers = {
+      gmail: 'smtp.gmail.com',
+      outlook: 'smtp.office365.com',
+      yahoo: 'smtp.mail.yahoo.com',
+      zoho: 'smtp.zoho.com',
+      sendgrid: 'smtp.sendgrid.net',
+      mailgun: 'smtp.mailgun.org',
+      yandex: 'smtp.yandex.com',
+      protonmail: 'smtp.protonmail.com',
+      icloud: 'smtp.mail.me.com',
+      aol: 'smtp.aol.com',
+      zohomail: 'smtp.zoho.eu',
+      gmx: 'smtp.gmx.com'
+    };
+
+    if (providers.hasOwnProperty(provider)) hostProvider = providers[provider];
+    else hostProvider = providers[defaultProvider];
 
     const fields = {
       hostProvider: hostProvider,

@@ -21,3 +21,9 @@ N
 server/services/mail-worker.js,6\7\6749e9efc186be5b920c9585ec94984f41880425
 P
  server/controllers/controller.js,b\f\bf7123efea4037321801ab4351599e80d416967d
+:
+
+.gitignore,a\5\a5cc2925ca8258af241be7e5b0381edf30266302
+:
+
+.npmignore,a\a\aa70c1f807c37f569ecaab41d557b08040e4aada
