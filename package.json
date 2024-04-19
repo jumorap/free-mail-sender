@@ -6,13 +6,26 @@
     "name": "free-mail-sender",
     "description": "This Strapi plugin is designed to streamline the process of sending emails through the REST API. It enables you to send emails using different providers and customize the email content to suit your specific needs.",
     "kind": "plugin",
-    "displayName": "Mail Sender"
+    "displayName": "Free mail Sender"
   },
   "dependencies": {
     "nodemailer": "^6.9.13"
   },
   "devDependencies": {},
   "peerDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jumorap/free-mail-sender.git"
+  },
+  "keywords": [
+    "strapi",
+    "plugin",
+    "email",
+    "mail",
+    "sender",
+    "nodemailer",
+    "free"
+  ],
   "author": {
     "name": "Jumorap"
   },
@@ -25,5 +38,9 @@
     "node": ">=18.0.0 <=20.x.x",
     "npm": ">=6.0.0"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jumorap/free-mail-sender/issues"
+  },
+  "homepage": "https://github.com/jumorap/free-mail-sender#readme"
 }
