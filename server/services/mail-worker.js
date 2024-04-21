@@ -42,6 +42,7 @@ const emailSenderWorker = (ctx, fields) => {
 
   transporter.sendMail(mailOptions, (error, info) => {
     if (error) ctx.body = {error: error, sent: false};
+    ctx.body = {message: 'Message sent', sent: true, info: info}; // Trick to wait for the email to be sent
   });
 };
 
