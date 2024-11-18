@@ -26,6 +26,16 @@ pnpm i free-mail-sender
 
 ---
 
+# Config
+
+To allow public use to the POST endpoint, go to:
+
+```
+<URL>/admin/settings/users-permissions/roles/2
+```
+
+Pick `Free-mail-sender` selector and check the `mailto` box option
+
 # Usage
 
 ## Examples
@@ -35,7 +45,7 @@ Send an email:
 Using a **POST** request to the following endpoint:
 
 ```
-<URL>/free-mail-sender/send-email
+<URL>/api/free-mail-sender/send-email
 ```
 
 1. With the following body to a single recipient:
