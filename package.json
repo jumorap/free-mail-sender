@@ -1,6 +1,6 @@
 {
   "name": "free-mail-sender",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "This Strapi plugin is designed to streamline the process of sending emails through the REST API. It enables you to send emails using different providers and customize the email content to suit your specific needs.",
   "strapi": {
     "name": "free-mail-sender",

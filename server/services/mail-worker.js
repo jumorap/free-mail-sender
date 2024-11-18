@@ -31,7 +31,7 @@ const emailSenderWorker = (strapi, ctx, fields) => {
     secure: false,
     auth: {
       user: strapi.plugin("free-mail-sender")?.config("sender") || "",
-      pass: strapi.plugin("free-mail-sender")?.config("PASSWORD_SENDER") || "",
+      pass: strapi.plugin("free-mail-sender")?.config("pass") || "",
     },
   });
 
