@@ -12,32 +12,37 @@ const checkFields = (fields) => {
    * @param {Object} fields - The fields to check
    * @returns {Object} - The allowed status and error message
    */
-  if (!fields.toEmail) return { allowed: false, error: "To email is required" };
-  if (!fields.subject) return { allowed: false, error: "Subject is required" };
-  if (!fields.mailText)
-    return { allowed: false, error: "Html text is required" };
+  if (!fields.toEmail) return { allowed: false, error: "Invalid token" }; // TO email is required
+  if (!fields.subject) return { allowed: false, error: "Invalid token" }; // Subject is required
+  if (!fields.mailText) return { allowed: false, error: "Invalid token" }; // Mail text is required
 
   return { allowed: true };
 };
 
-const decryptData = (encryptedData, privateKey) => {
+const decryptData = (ctx, encryptedData, privateKey) => {
   /**
    * Decrypt the encrypted data using the private key
+   * @param {Object} ctx - The context object to send the response
    * @param {String} encryptedData - The encrypted data to decrypt
    * @param {String} privateKeyBase64 - The private key to decrypt the data
    * @returns {String} - The decrypted data
    */
-  privateKey = `-----BEGIN PRIVATE KEY-----\n${privateKey}\n-----END PRIVATE KEY-----`;
-  const buffer = Buffer.from(encryptedData, "base64");
-  const decryptedData = crypto.privateDecrypt(
-    {
-      key: privateKey,
-      padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-      oaepHash: "sha256",
-    },
-    buffer
-  );
-  return decryptedData.toString("utf8"); // Devuelve el texto desencriptado
+  try {
+    privateKey = `-----BEGIN PRIVATE KEY-----\n${privateKey}\n-----END PRIVATE KEY-----`;
+    const buffer = Buffer.from(encryptedData, "base64");
+    const decryptedData = crypto.privateDecrypt(
+      {
+        key: privateKey,
+        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+        oaepHash: "sha256",
+      },
+      buffer
+    );
+    return decryptedData.toString("utf8");
+  } catch (error) {
+    ctx.body = { error: "Invalid token", sent: false };
+    return;
+  }
 };
 
 const encryptData = (data, publicKey) => {
@@ -57,7 +62,7 @@ const encryptData = (data, publicKey) => {
     },
     buffer
   );
-  return encryptedData.toString("base64"); // Devuelve el resultado en base64
+  return encryptedData.toString("base64");
 };
 
 const plainToJson = (plain) => {
@@ -154,6 +159,10 @@ module.exports = ({ strapi }) => ({
     else hostProvider = providers[defaultProvider];
 
     const privateKey = strapi.plugin("free-mail-sender")?.config("token") || "";
+    if (!privateKey) {
+      ctx.body = { error: "Back-end token is required", sent: false };
+      return;
+    }
     // const publicKey = ``;
     const mailText = JSON.stringify(request?.mail);
     if (checkSentBefore(mailText)) {
@@ -161,7 +170,7 @@ module.exports = ({ strapi }) => ({
       return;
     }
     // const cryptedMailText = encryptData(mailText, publicKey);
-    const decryptedMailText = decryptData(mailText, privateKey);
+    const decryptedMailText = decryptData(ctx, mailText, privateKey);
 
     request = plainToJson(decryptedMailText);
 

@@ -141,7 +141,7 @@ const HomePage = () => {
       {/* Mostrar las claves generadas */}
       {publicKey && (
         <Box marginTop={6}>
-          <Typography variant="delta">Clave Pública:</Typography>
+          <Typography variant="delta">Front-end token:</Typography>
           <Textarea
             value={publicKey}
             readOnly
@@ -149,7 +149,7 @@ const HomePage = () => {
             style={{ marginBottom: "20px" }}
           />
 
-          <Typography variant="delta">Clave Privada:</Typography>
+          <Typography variant="delta">Back-end token:</Typography>
           <Textarea
             value={privateKey}
             readOnly
@@ -160,8 +160,7 @@ const HomePage = () => {
       )}
 
       <Typography variant="omega" style={{ marginTop: "20px" }}>
-        Utiliza las llaves generadas para firmar tus requests y proteger tus
-        datos.
+        Estos tokens son necesarios para cifrar y descifrar los datos enviados
       </Typography>
 
       {/* Botón para ver el tutorial */}
@@ -190,95 +189,158 @@ const HomePage = () => {
             </Typography>
           </ModalHeader>
           <ModalBody>
-            <Stack spacing={2}>
+            <Stack spacing={4}>
               <Box
                 style={{
                   padding: "16px",
                   backgroundColor: "#32324d",
                   color: "#fff",
+                  borderRadius: "4px",
                 }}
               >
-                <Typography variant="SIGMA" fontWeight="bold">
-                  <b>Pasos:</b>
+                <Typography variant="sigma" fontWeight="bold" color="white">
+                  Tutorial Paso a Paso
                 </Typography>
-                <Typography>
-                  1. Guarda las llaves generadas.
-                  <br />
-                  2. Utiliza la clave pública en el frontend para cifrar los
-                  datos.
-                  <br />
-                  3. Envía las peticiones cifradas al servidor.
-                  <br />
-                  4. El servidor utiliza la clave privada para descifrar la
-                  información y procesar la petición.
-                </Typography>
-                <br />
-                <Typography variant="SIGMA" fontWeight="bold">
-                  <b>Ejemplo de Código:</b>
-                </Typography>
-                <Typography>
-                  A continuación, se muestra un ejemplo de cómo cifrar la
-                  información con la clave pública generada y cómo realizar una
-                  petición al endpoint.
-                </Typography>
-                <pre>
-                  <code>{`// Datos a cifrar
-const data = {
-  "toEmail": ["mail@mail.com"],
-  "subject": "Important subject",
-  "mailText": "<p><b>HTML</b> content</p>"
-};
+              </Box>
 
-// Función para cifrar datos con la clave pública
-async function encryptData(publicKeyBase64, data) {
-  const publicKeyBuffer = Uint8Array.from(atob(publicKeyBase64), c => c.charCodeAt(0));
-  const publicKey = await crypto.subtle.importKey(
-    "spki",
-    publicKeyBuffer.buffer,
+              {/* Paso 1 */}
+              <Box>
+                <Typography variant="beta" fontWeight="bold" marginBottom={2}>
+                  1. Configurar el Entorno:&nbsp;
+                </Typography>
+                <Typography>
+                  Guarda el token generado como variable de entorno en tu
+                  aplicación front-end. Este token se utilizará como clave
+                  pública para cifrar los datos del correo.
+                </Typography>
+                <Box
+                  background="neutral100"
+                  padding={3}
+                  marginTop={2}
+                  style={{ borderRadius: "4px" }}
+                >
+                  <Typography variant="code">
+                    {`REACT_APP_STRAPI_PUBLIC_KEY=MIIBIjANBgkqhkiG...vY6uieceP/3zswIDAQAB`}
+                  </Typography>
+                </Box>
+              </Box>
+
+              {/* Paso 2 */}
+              <Box>
+                <Typography variant="beta" fontWeight="bold" marginBottom={2}>
+                  2. Cifrar Datos del Correo:&nbsp;
+                </Typography>
+                <Typography>
+                  Utiliza la función encryptData con la clave pública generada
+                  en Strapi.
+                </Typography>
+                <Box
+                  background="neutral100"
+                  padding={3}
+                  marginTop={2}
+                  style={{ borderRadius: "4px" }}
+                >
+                  <Typography variant="code">
+                    <pre>
+                      {`
+const encryptData = (data, publicKey) => {
+  /**
+   * Encrypt the data using the public key
+   * @param {String} data - The data to encrypt
+   * @param {String} publicKey - The public key to encrypt the data
+   * @returns {String} - The encrypted data
+   */
+  publicKey = \`-----BEGIN PUBLIC KEY-----\n\${publicKey}\n-----END PUBLIC KEY-----\`;
+  const buffer = Buffer.from(data, "utf8");
+  const encryptedData = crypto.publicEncrypt(
     {
-      name: "RSA-OAEP",
-      hash: "SHA-256"
+      key: publicKey,
+      padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+      oaepHash: "sha256",
     },
-    false,
-    ["encrypt"]
+    buffer
   );
+  return encryptedData.toString("base64");
+};
+                    `}
+                    </pre>
+                  </Typography>
+                </Box>
 
-  const encodedData = new TextEncoder().encode(JSON.stringify(data));
-  const encryptedData = await crypto.subtle.encrypt(
-    { name: "RSA-OAEP" },
-    publicKey,
-    encodedData
-  );
+                <Box
+                  background="neutral100"
+                  padding={3}
+                  marginTop={2}
+                  style={{ borderRadius: "4px" }}
+                >
+                  <Typography variant="code">
+                    {`const mail = { 
+  mail: \`{"toEmail": ["\${EMAIL}"],"subject": "\${SUBJECT}","mailText": "\${MAIL_TEXT}"}\`
+};`}
+                  </Typography>
+                </Box>
 
-  return encryptedData;
-}
+                <Box
+                  background="neutral100"
+                  padding={3}
+                  marginTop={2}
+                  style={{ borderRadius: "4px" }}
+                >
+                  <Typography variant="code">
+                    {`const encryptedMail = encryptData(
+  mail.mail, 
+  process.env.REACT_APP_STRAPI_PUBLIC_KEY
+);`}
+                  </Typography>
+                </Box>
+              </Box>
 
-// Función para enviar el request
-async function sendRequest(publicKeyBase64, data) {
-  try {
-    const encryptedData = await encryptData(publicKeyBase64, data);
-
-    // Realizar la petición a la API de Strapi
-    const response = await fetch("http://localhost:1332/api/free-mail-sender/send-email", {
+              {/* Paso 3 */}
+              <Box>
+                <Typography variant="beta" fontWeight="bold" marginBottom={2}>
+                  3. Enviar Correo Cifrado:&nbsp;
+                </Typography>
+                <Typography>
+                  Realiza una petición POST al endpoint del plugin con los datos
+                  cifrados.
+                </Typography>
+                <Box
+                  background="neutral100"
+                  padding={3}
+                  marginTop={2}
+                  style={{ borderRadius: "4px" }}
+                >
+                  <Typography variant="code">
+                    <pre>
+                      {`
+const sendEncryptedMail = async (encryptedMail) => {
+  const response = await fetch(
+    "http://<STRAPI_URL>/api/free-mail-sender/send-email", 
+    {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        encryptedBody: btoa(String.fromCharCode(...new Uint8Array(encryptedData))) // Cifrado en base64
-      })
-    });
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mail: encryptedMail })
+    }
+  );
+};`}
+                    </pre>
+                  </Typography>
+                </Box>
+              </Box>
 
-    const responseData = await response.json();
-    console.log("Respuesta de la API:", responseData);
-  } catch (error) {
-    console.error("Error al enviar la petición:", error);
-  }
-}
-
-// Llamada a la función con la clave pública y los datos
-sendRequest("${publicKey}", data);`}</code>
-                </pre>
+              {/* Nota Final */}
+              <Box
+                background="neutral200"
+                padding={3}
+                style={{ borderRadius: "4px" }}
+              >
+                <Typography variant="omega" fontWeight="semiBold">
+                  Importante:&nbsp;
+                </Typography>
+                <Typography variant="small">
+                  Asegúrate de manejar los errores y de no exponer tus claves
+                  públicas y privadas.
+                </Typography>
               </Box>
             </Stack>
           </ModalBody>

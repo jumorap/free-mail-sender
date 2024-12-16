@@ -129,7 +129,8 @@ module.exports = ({ env }) => ({
     config: {
       provider: 'gmail', // Check the providers list -> DEFAULT: 'outlook'
       sender: env('EMAIL_SENDER', ''),
-      pass: env('PASSWORD_SENDER', '')
+      pass: env('PASSWORD_SENDER', ''),
+      token: env("TOKEN", ''), // Token generated from Strapi UI
     },
   },
 });
@@ -145,7 +146,8 @@ export default ({ env }) => ({
     config: {
       provider: 'gmail', // Check the providers list -> DEFAULT: 'outlook'
       sender: env('EMAIL_SENDER', ''),
-      pass: env('PASSWORD_SENDER', '')
+      pass: env('PASSWORD_SENDER', ''),
+      token: env("TOKEN", ''), // Token generated from Strapi UI
     },
   },
 });
@@ -162,6 +164,7 @@ JWT_SECRET=...
 #...
 EMAIL_SENDER=yourMail@provider.com
 PASSWORD_SENDER=superSecretPasswordMailHere
+TOKEN=GeneratedTokenViaStrapiUI
 ```
 
 ## Configuration options extended
@@ -184,14 +187,79 @@ PASSWORD_SENDER=superSecretPasswordMailHere
 ---
 
 # Quick Tutorial Step by Step
-Click on the image below to watch the tutorial on YouTube.
-It will guide you through the process of installing and configuring the plugin
-and how to test it through the REST API via Postman.
 
-Feel free to ask any questions or suggest improvements.
+## 1. Configurar el entorno en el front-end
 
-[![Quick Tutorial Step by Step](https://img.youtube.com/vi/vW8Op4O-z-Y/maxresdefault.jpg)](https://www.youtube.com/watch?v=vW8Op4O-z-Y)
-[Quick Tutorial Step by Step](https://www.youtube.com/watch?v=vW8Op4O-z-Y)
+Before starting, make sure to save the **token** generated from the Strapi UI as an environment variable in your front-end application. This token will be used as the public key to encrypt the email data.
+
+```js
+// Create a string with the required format for the plugin
+const mail = { 
+  mail: `{"toEmail": ["${EMAIL}"],"subject": "${SUBJECT}","mailText": "${MAIL_TEXT}"}`,
+};
+```
+
+## 2. Encrypt the Email Data
+
+To secure the email data, use the encryptData function. You'll need the public token generated from Strapi (public key) as the second parameter.
+
+```js
+// Import the 'crypto' module
+const crypto = require("crypto");
+
+/**
+ * Encrypts the data using a public key
+ * @param {String} data - Data to encrypt
+ * @param {String} publicKey - Public key for encryption
+ * @returns {String} - Encrypted data in base64
+ */
+const encryptData = (data, publicKey) => {
+  publicKey = `-----BEGIN PUBLIC KEY-----\n${publicKey}\n-----END PUBLIC KEY-----`;
+  const buffer = Buffer.from(data, "utf8");
+  const encryptedData = crypto.publicEncrypt(
+    {
+      key: publicKey,
+      padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+      oaepHash: "sha256",
+    },
+    buffer
+  );
+  return encryptedData.toString("base64");
+};
+
+// Use the function to encrypt the email data
+const publicKey = process.env.STRAPI_PUBLIC_KEY; // Your public token from Strapi
+const encryptedMail = encryptData(mail.mail, publicKey);
+
+console.log("Encrypted mail:", encryptedMail);
+```
+
+## 3. Send the Encrypted Email
+
+Make a `POST` request to the plugin endpoint using the encrypted email. Here's an example using `fetch`:
+
+```js
+const sendEncryptedMail = async (encryptedMail) => {
+  const response = await fetch("http://<STRAPI_URL>/api/free-mail-sender/send-email", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      mail: encryptedMail, // Encrypted email data
+    }),
+  });
+
+  if (response.ok) {
+    console.log("Email sent successfully");
+  } else {
+    console.error("Error sending the email:", await response.json());
+  }
+};
+
+// Call the function with the encrypted mail
+sendEncryptedMail(encryptedMail);
+```
 
 ---
 
