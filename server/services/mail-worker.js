@@ -1,6 +1,10 @@
 "use strict";
 
 const nodemailer = require("nodemailer");
+const crypto = require("crypto");
+
+let mails = [];
+module.exports = { mails };
 
 const checkFields = (fields) => {
   /**
@@ -14,6 +18,73 @@ const checkFields = (fields) => {
     return { allowed: false, error: "Html text is required" };
 
   return { allowed: true };
+};
+
+const decryptData = (encryptedData, privateKey) => {
+  /**
+   * Decrypt the encrypted data using the private key
+   * @param {String} encryptedData - The encrypted data to decrypt
+   * @param {String} privateKeyBase64 - The private key to decrypt the data
+   * @returns {String} - The decrypted data
+   */
+  privateKey = `-----BEGIN PRIVATE KEY-----\n${privateKey}\n-----END PRIVATE KEY-----`;
+  const buffer = Buffer.from(encryptedData, "base64");
+  const decryptedData = crypto.privateDecrypt(
+    {
+      key: privateKey,
+      padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+      oaepHash: "sha256",
+    },
+    buffer
+  );
+  return decryptedData.toString("utf8"); // Devuelve el texto desencriptado
+};
+
+const encryptData = (data, publicKey) => {
+  /**
+   * Encrypt the data using the public key
+   * @param {String} data - The data to encrypt
+   * @param {String} publicKey - The public key to encrypt the data
+   * @returns {String} - The encrypted data
+   */
+  publicKey = `-----BEGIN PUBLIC KEY-----\n${publicKey}\n-----END PUBLIC KEY-----`;
+  const buffer = Buffer.from(data, "utf8");
+  const encryptedData = crypto.publicEncrypt(
+    {
+      key: publicKey,
+      padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+      oaepHash: "sha256",
+    },
+    buffer
+  );
+  return encryptedData.toString("base64"); // Devuelve el resultado en base64
+};
+
+const plainToJson = (plain) => {
+  /**
+   * Convert the plain text to a JSON object
+   * @param {String} plain - The plain text to convert
+   * @returns {Object} - The JSON object
+   */
+  try {
+    const jsonMail = JSON.parse(plain);
+    if (typeof jsonMail === "object") return jsonMail;
+  } catch (error) {
+    return { error: error };
+  }
+};
+
+const checkSentBefore = (mailText) => {
+  /**
+   * Check if the email was sent before
+   * @param {Object} strapi - The strapi object
+   * @param {String} mailText - The email text to check
+   * @returns {Boolean} - The email sent status
+   */
+  const mail = mails.find((m) => m === mailText);
+  if (mail) return true;
+  mails.push(mailText);
+  return false;
 };
 
 const emailSenderWorker = (strapi, ctx, fields) => {
@@ -59,11 +130,9 @@ module.exports = ({ strapi }) => ({
     ctx.body = { message: "Message sent", sent: true };
 
     const defaultProvider = "outlook";
-    const providerConfig = strapi
-      .plugin("free-mail-sender")
-      ?.config("provider")
-      ?.toLowerCase();
-    const provider = providerConfig || defaultProvider;
+    const provider =
+      strapi.plugin("free-mail-sender")?.config("provider")?.toLowerCase() ||
+      defaultProvider;
 
     let hostProvider = "";
     const providers = {
@@ -83,6 +152,18 @@ module.exports = ({ strapi }) => ({
 
     if (providers.hasOwnProperty(provider)) hostProvider = providers[provider];
     else hostProvider = providers[defaultProvider];
+
+    const privateKey = strapi.plugin("free-mail-sender")?.config("token") || "";
+    // const publicKey = ``;
+    const mailText = JSON.stringify(request?.mail);
+    if (checkSentBefore(mailText)) {
+      ctx.body = { error: "Mail already sent", sent: false };
+      return;
+    }
+    // const cryptedMailText = encryptData(mailText, publicKey);
+    const decryptedMailText = decryptData(mailText, privateKey);
+
+    request = plainToJson(decryptedMailText);
 
     const fields = {
       hostProvider: hostProvider,
