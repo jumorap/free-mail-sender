@@ -188,15 +188,13 @@ TOKEN=GeneratedTokenViaStrapiUI
 
 # Quick Tutorial Step by Step
 
-## 1. Configurar el entorno en el front-end
+## 1. Configure the front-end enviroment
 
 Before starting, make sure to save the **token** generated from the Strapi UI as an environment variable in your front-end application. This token will be used as the public key to encrypt the email data.
 
 ```js
 // Create a string with the required format for the plugin
-const mail = { 
-  mail: `{"toEmail": ["${EMAIL}"],"subject": "${SUBJECT}","mailText": "${MAIL_TEXT}"}`,
-};
+const mail = `{"toEmail": ["${EMAIL}"],"subject": "${SUBJECT}","mailText": "${MAIL_TEXT}"}`;
 ```
 
 ## 2. Encrypt the Email Data
@@ -229,7 +227,7 @@ const encryptData = (data, publicKey) => {
 
 // Use the function to encrypt the email data
 const publicKey = process.env.STRAPI_PUBLIC_KEY; // Your public token from Strapi
-const encryptedMail = encryptData(mail.mail, publicKey);
+const encryptedMail = encryptData(mail, publicKey);
 
 console.log("Encrypted mail:", encryptedMail);
 ```
