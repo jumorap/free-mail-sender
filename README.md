@@ -186,77 +186,241 @@ TOKEN=GeneratedTokenViaStrapiUI
 
 ---
 
+I'll replace the "Quick Tutorial Step by Step" section with the new hybrid encryption approach information:
+
+```markdown
 # Quick Tutorial Step by Step
 
-## 1. Configure the front-end enviroment
+## 1. Configure the front-end environment
 
 Before starting, make sure to save the **token** generated from the Strapi UI as an environment variable in your front-end application. This token will be used as the public key to encrypt the email data.
 
-```js
-// Create a string with the required format for the plugin
-const mail = `{"toEmail": ["${EMAIL}"],"subject": "${SUBJECT}","mailText": "${MAIL_TEXT}"}`;
-```
+## 2. Implement Hybrid Encryption Functions
 
-## 2. Encrypt the Email Data
-
-To secure the email data, use the encryptData function. You'll need the public token generated from Strapi (public key) as the second parameter.
+Create utility functions for the hybrid encryption approach (RSA+AES), which allows you to encrypt emails of any size:
 
 ```js
-// Import the 'crypto' module
-const crypto = require("crypto");
-
-/**
- * Encrypts the data using a public key
- * @param {String} data - Data to encrypt
- * @param {String} publicKey - Public key for encryption
- * @returns {String} - Encrypted data in base64
- */
-const encryptData = (data, publicKey) => {
-  publicKey = `-----BEGIN PUBLIC KEY-----\n${publicKey}\n-----END PUBLIC KEY-----`;
-  const buffer = Buffer.from(data, "utf8");
-  const encryptedData = crypto.publicEncrypt(
-    {
-      key: publicKey,
-      padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-      oaepHash: "sha256",
-    },
-    buffer
-  );
-  return encryptedData.toString("base64");
+// Utility functions for conversion
+const base64ToArrayBuffer = (base64) => {
+  const binaryString = window.atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes.buffer;
 };
 
-// Use the function to encrypt the email data
-const publicKey = process.env.STRAPI_PUBLIC_KEY; // Your public token from Strapi
-const encryptedMail = encryptData(mail, publicKey);
+const arrayBufferToBase64 = (buffer) => {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return window.btoa(binary);
+};
 
-console.log("Encrypted mail:", encryptedMail);
+/**
+ * Imports the RSA public key for encryption
+ * @param {string} publicKeyBase64 - Public key encoded in base64
+ * @returns {Promise<CryptoKey>} - Imported crypto key
+ */
+const importPublicKey = async (publicKeyBase64) => {
+  try {
+    const keyData = base64ToArrayBuffer(publicKeyBase64);
+    
+    const publicKey = await window.crypto.subtle.importKey(
+      'spki',
+      keyData,
+      {
+        name: 'RSA-OAEP',
+        hash: 'SHA-256',
+      },
+      false,
+      ['encrypt']
+    );
+    
+    return publicKey;
+  } catch (error) {
+    console.error('Error importing public key:', error);
+    throw new Error(`Failed to import public key: ${error.message}`);
+  }
+};
+
+/**
+ * Generates a random AES key for symmetric encryption
+ * @returns {Promise<CryptoKey>} - Generated AES key
+ */
+const generateAESKey = async () => {
+  return await window.crypto.subtle.generateKey(
+    {
+      name: 'AES-GCM',
+      length: 256,
+    },
+    true,
+    ['encrypt', 'decrypt']
+  );
+};
+
+/**
+ * Exports the AES key to raw format
+ * @param {CryptoKey} key - AES key to export
+ * @returns {Promise<ArrayBuffer>} - Raw key data
+ */
+const exportAESKey = async (key) => {
+  return await window.crypto.subtle.exportKey('raw', key);
+};
+
+/**
+ * Encrypts data using AES-GCM
+ * @param {string} data - Data to encrypt
+ * @param {CryptoKey} aesKey - AES key for encryption
+ * @returns {Promise<{encryptedData: string, iv: string}>} - Encrypted data and IV in base64
+ */
+const encryptWithAES = async (data, aesKey) => {
+  const encoder = new TextEncoder();
+  const dataBuffer = encoder.encode(data);
+  
+  // Generate random IV (12 bytes for GCM)
+  const iv = window.crypto.getRandomValues(new Uint8Array(12));
+  
+  const encryptedBuffer = await window.crypto.subtle.encrypt(
+    {
+      name: 'AES-GCM',
+      iv: iv,
+    },
+    aesKey,
+    dataBuffer
+  );
+  
+  return {
+    encryptedData: arrayBufferToBase64(encryptedBuffer),
+    iv: arrayBufferToBase64(iv.buffer)
+  };
+};
+
+/**
+ * Encrypts the AES key using RSA-OAEP
+ * @param {ArrayBuffer} aesKeyRaw - Raw AES key data
+ * @param {string} publicKeyBase64 - RSA public key encoded in base64
+ * @returns {Promise<string>} - Encrypted AES key in base64
+ */
+const encryptAESKeyWithRSA = async (aesKeyRaw, publicKeyBase64) => {
+  const publicKey = await importPublicKey(publicKeyBase64);
+  
+  const encryptedKeyBuffer = await window.crypto.subtle.encrypt(
+    {
+      name: 'RSA-OAEP'
+    },
+    publicKey,
+    aesKeyRaw
+  );
+  
+  return arrayBufferToBase64(encryptedKeyBuffer);
+};
+
+/**
+ * Encrypts data using hybrid encryption (RSA + AES)
+ * @param {string} data - Data to encrypt
+ * @param {string} publicKeyBase64 - Public key encoded in base64
+ * @returns {Promise<string>} - Encrypted package in base64
+ */
+const encryptData = async (data, publicKeyBase64) => {
+  try {
+    // Generate AES key
+    const aesKey = await generateAESKey();
+    const aesKeyRaw = await exportAESKey(aesKey);
+    
+    // Encrypt data with AES
+    const { encryptedData, iv } = await encryptWithAES(data, aesKey);
+    
+    // Encrypt AES key with RSA
+    const encryptedAESKey = await encryptAESKeyWithRSA(aesKeyRaw, publicKeyBase64);
+    
+    // Create encrypted package
+    const encryptedPackage = {
+      encryptedKey: encryptedAESKey,
+      encryptedData: encryptedData,
+      iv: iv
+    };
+    
+    // Convert package to base64
+    return window.btoa(JSON.stringify(encryptedPackage));
+    
+  } catch (error) {
+    console.error('Encryption error:', error);
+    throw new Error(`Encryption failed: ${error.message}`);
+  }
+};
 ```
 
-## 3. Send the Encrypted Email
+## 3. Prepare the Email Data
 
-Make a `POST` request to the plugin endpoint using the encrypted email. Here's an example using `fetch`:
+Create the email data object with recipient(s), subject, and content:
+
+```js
+// Email configuration
+const EMAIL = "recipient@example.com";
+const SUBJECT = "Test Email with Hybrid Encryption";
+const MAIL_TEXT = "This message uses hybrid RSA+AES encryption! Now we can send emails of any size without limitations. 🚀🔐";
+
+// Create email data object
+const mail = JSON.stringify({
+  toEmail: [EMAIL],
+  subject: SUBJECT,
+  mailText: MAIL_TEXT
+});
+
+console.log("Email data length:", mail.length, "bytes");
+```
+
+## 4. Encrypt the Email Data
+
+Use the hybrid encryption approach to encrypt the email data with your public key:
+
+```js
+// Your public key from Strapi
+const PUBLIC_KEY = "YOUR_PUBLIC_KEY_HERE"; // Replace with your token from Strapi
+
+// Encrypt email data using hybrid encryption
+const encryptedMail = await encryptData(mail, PUBLIC_KEY);
+
+console.log("Encrypted mail package length:", encryptedMail.length, "bytes");
+```
+
+## 5. Send the Encrypted Email
+
+Make a `POST` request to the plugin endpoint using the encrypted email:
 
 ```js
 const sendEncryptedMail = async (encryptedMail) => {
-  const response = await fetch("http://<STRAPI_URL>/api/free-mail-sender/send-email", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      mail: encryptedMail, // Encrypted email data
-    }),
-  });
+  try {
+    const response = await fetch("http://<STRAPI_URL>/api/free-mail-sender/send-email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        mail: encryptedMail, // Encrypted email data
+      }),
+    });
 
-  if (response.ok) {
-    console.log("Email sent successfully");
-  } else {
-    console.error("Error sending the email:", await response.json());
+    if (response.ok) {
+      const result = await response.json();
+      console.log("Email sent successfully:", result);
+      return result;
+    } else {
+      const error = await response.json();
+      console.error("Error sending the email:", error);
+      throw new Error(`Server error: ${error.message || 'Unknown error'}`);
+    }
+  } catch (error) {
+    console.error("Network error:", error);
+    throw new Error(`Network error: ${error.message}`);
   }
 };
 
 // Call the function with the encrypted mail
-sendEncryptedMail(encryptedMail);
+await sendEncryptedMail(encryptedMail);
 ```
 
 ---

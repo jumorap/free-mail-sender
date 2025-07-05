@@ -19,27 +19,115 @@ const checkFields = (fields) => {
   return { allowed: true };
 };
 
-const decryptData = (ctx, encryptedData, privateKey) => {
+/**
+ * Imports AES key from raw buffer
+ * @param {Buffer} keyBuffer - Raw AES key buffer
+ * @returns {Promise<Object>} - Imported AES key
+ */
+const importAESKey = async (keyBuffer) => {
+  return await crypto.webcrypto.subtle.importKey(
+    'raw',
+    keyBuffer,
+    {
+      name: 'AES-GCM',
+      length: 256,
+    },
+    false,
+    ['decrypt']
+  );
+};
+
+/**
+ * Decrypts AES key using RSA private key
+ * @param {string} encryptedAESKey - Base64 encoded encrypted AES key
+ * @param {string} privateKey - RSA private key in PEM format
+ * @returns {Buffer} - Decrypted AES key buffer
+ */
+const decryptAESKeyWithRSA = (encryptedAESKey, privateKey) => {
+  const keyBuffer = Buffer.from(encryptedAESKey, "base64");
+  return crypto.privateDecrypt(
+    {
+      key: privateKey,
+      padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+      oaepHash: "sha256",
+    },
+    keyBuffer
+  );
+};
+
+/**
+ * Decrypts data using AES-GCM
+ * @param {string} encryptedData - Base64 encoded encrypted data
+ * @param {string} ivBase64 - Base64 encoded IV
+ * @param {Object} aesKey - AES key object
+ * @returns {Promise<string>} - Decrypted data
+ */
+const decryptWithAES = async (encryptedData, ivBase64, aesKey) => {
+  const encryptedBuffer = Buffer.from(encryptedData, "base64");
+  const iv = Buffer.from(ivBase64, "base64");
+  
+  const decryptedBuffer = await crypto.webcrypto.subtle.decrypt(
+    {
+      name: 'AES-GCM',
+      iv: iv,
+    },
+    aesKey,
+    encryptedBuffer
+  );
+  
+  return new TextDecoder().decode(decryptedBuffer);
+};
+
+const decryptData = async (ctx, encryptedPackage, privateKey) => {
   /**
-   * Decrypt the encrypted data using the private key
+   * Decrypt the encrypted package using hybrid decryption (RSA + AES)
    * @param {Object} ctx - The context object to send the response
-   * @param {String} encryptedData - The encrypted data to decrypt
+   * @param {String} encryptedPackage - The encrypted package to decrypt
    * @param {String} privateKeyBase64 - The private key to decrypt the data
    * @returns {String} - The decrypted data
    */
   try {
     privateKey = `-----BEGIN PRIVATE KEY-----\n${privateKey}\n-----END PRIVATE KEY-----`;
-    const buffer = Buffer.from(encryptedData, "base64");
-    const decryptedData = crypto.privateDecrypt(
-      {
-        key: privateKey,
-        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-        oaepHash: "sha256",
-      },
-      buffer
-    );
-    return decryptedData.toString("utf8");
+    
+    // Parse the encrypted package
+    let packageData;
+    try {
+      const packageJson = Buffer.from(encryptedPackage, 'base64').toString('utf-8');
+      packageData = JSON.parse(packageJson);
+    } catch (parseError) {
+      // Fallback to old encryption method if parsing fails
+      const buffer = Buffer.from(encryptedPackage, "base64");
+      const decryptedData = crypto.privateDecrypt(
+        {
+          key: privateKey,
+          padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+          oaepHash: "sha256",
+        },
+        buffer
+      );
+      return decryptedData.toString("utf8");
+    }
+    
+    // Extract components
+    const { encryptedKey, encryptedData, iv } = packageData;
+    
+    if (!encryptedKey || !encryptedData || !iv) {
+      throw new Error("Invalid encrypted package format");
+    }
+    
+    // Decrypt AES key with RSA
+    const aesKeyBuffer = decryptAESKeyWithRSA(encryptedKey, privateKey);
+    
+    // Import AES key
+    const aesKey = await importAESKey(aesKeyBuffer);
+    
+    // Decrypt data with AES
+    const decryptedData = await decryptWithAES(encryptedData, iv, aesKey);
+    
+    return decryptedData;
+    
   } catch (error) {
+    console.error("Decryption error:", error);
     ctx.body = { error: "Invalid token", sent: false };
     return;
   }
@@ -120,12 +208,12 @@ const emailSenderWorker = (strapi, ctx, fields) => {
 
   transporter.sendMail(mailOptions, (error, info) => {
     if (error) ctx.body = { error: error, sent: false };
-    ctx.body = { message: "Message sent", sent: true, info: info }; // Trick to wait for the email to be sent
+    ctx.body = { message: "Message sent", sent: true, info: info };
   });
 };
 
 module.exports = ({ strapi }) => ({
-  sendEmail(request) {
+  async sendEmail(request) {
     /**
      * Create the email fields and send the email if the required fields are filled
      * @param {Object} request - The request object with the email fields
@@ -163,14 +251,15 @@ module.exports = ({ strapi }) => ({
       ctx.body = { error: "Back-end token is required", sent: false };
       return;
     }
-    // const publicKey = ``;
+
     const mailText = JSON.stringify(request?.mail);
     if (checkSentBefore(mailText)) {
       ctx.body = { error: "Mail already sent", sent: false };
       return;
     }
-    // const cryptedMailText = encryptData(mailText, publicKey);
-    const decryptedMailText = decryptData(ctx, mailText, privateKey);
+
+    const decryptedMailText = await decryptData(ctx, mailText, privateKey);
+    if (!decryptedMailText) return; // Error already set in decryptData
 
     request = plainToJson(decryptedMailText);
 
