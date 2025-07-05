@@ -333,7 +333,7 @@ const HomePage = () => {
                 </Box>
               </Box>
 
-              {/* Paso 2 */}
+              {/* Paso 2 - Funciones auxiliares completas */}
               <Box>
                 <Typography variant="beta" fontWeight="bold" marginBottom={2}>
                   2. 🔐 Código Frontend (React):
@@ -346,10 +346,83 @@ const HomePage = () => {
                 >
                   <Typography variant="code">
                     <pre style={{ fontSize: "11px", overflow: "auto" }}>
-{`// Encriptación Híbrida RSA+AES
+{`// Funciones auxiliares de conversión
+const base64ToArrayBuffer = (base64) => {
+  const binaryString = window.atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes.buffer;
+};
+
+const arrayBufferToBase64 = (buffer) => {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return window.btoa(binary);
+};
+
+// Importar clave pública RSA
+const importPublicKey = async (publicKeyBase64) => {
+  const keyData = base64ToArrayBuffer(publicKeyBase64);
+  
+  return await window.crypto.subtle.importKey(
+    'spki',
+    keyData,
+    {
+      name: 'RSA-OAEP',
+      hash: 'SHA-256',
+    },
+    false,
+    ['encrypt']
+  );
+};
+
+// Encriptar datos con AES-GCM
+const encryptWithAES = async (data, aesKey) => {
+  const encoder = new TextEncoder();
+  const dataBuffer = encoder.encode(data);
+  
+  // Generar IV aleatorio (12 bytes para GCM)
+  const iv = window.crypto.getRandomValues(new Uint8Array(12));
+  
+  const encryptedBuffer = await window.crypto.subtle.encrypt(
+    {
+      name: 'AES-GCM',
+      iv: iv,
+    },
+    aesKey,
+    dataBuffer
+  );
+  
+  return {
+    encryptedData: arrayBufferToBase64(encryptedBuffer),
+    iv: arrayBufferToBase64(iv.buffer)
+  };
+};
+
+// Encriptar clave AES con RSA
+const encryptAESKeyWithRSA = async (aesKeyRaw, publicKeyBase64) => {
+  const publicKey = await importPublicKey(publicKeyBase64);
+  
+  const encryptedKeyBuffer = await window.crypto.subtle.encrypt(
+    {
+      name: 'RSA-OAEP'
+    },
+    publicKey,
+    aesKeyRaw
+  );
+  
+  return arrayBufferToBase64(encryptedKeyBuffer);
+};
+
+// Encriptación Híbrida RSA+AES
 const encryptData = async (data, publicKeyBase64) => {
   // Generar clave AES
-  const aesKey = await crypto.subtle.generateKey(
+  const aesKey = await window.crypto.subtle.generateKey(
     { name: 'AES-GCM', length: 256 },
     true, ['encrypt', 'decrypt']
   );
@@ -358,11 +431,11 @@ const encryptData = async (data, publicKeyBase64) => {
   const { encryptedData, iv } = await encryptWithAES(data, aesKey);
   
   // Encriptar clave AES con RSA
-  const aesKeyRaw = await crypto.subtle.exportKey('raw', aesKey);
+  const aesKeyRaw = await window.crypto.subtle.exportKey('raw', aesKey);
   const encryptedAESKey = await encryptAESKeyWithRSA(aesKeyRaw, publicKeyBase64);
   
   // Empaquetar todo
-  return btoa(JSON.stringify({
+  return window.btoa(JSON.stringify({
     encryptedKey: encryptedAESKey,
     encryptedData: encryptedData,
     iv: iv

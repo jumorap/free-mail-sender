@@ -185,10 +185,6 @@ TOKEN=GeneratedTokenViaStrapiUI
 - **gmx**: 'gmx'
 
 ---
-
-I'll replace the "Quick Tutorial Step by Step" section with the new hybrid encryption approach information:
-
-```markdown
 # Quick Tutorial Step by Step
 
 ## 1. Configure the front-end environment
