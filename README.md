@@ -1,7 +1,7 @@
 # Strapi plugin free-mail-sender
 
-This Strapi plugin is designed to streamline the process of sending emails through the 
-REST API. It enables you to send emails using different providers and customize the 
+This Strapi plugin is designed to streamline the process of sending emails through the
+REST API. It enables you to send emails using different providers and customize the
 email content to suit your specific needs.
 
 ---
@@ -52,9 +52,9 @@ Using a **POST** request to the following endpoint:
 
 ```json
 {
-    "toEmail": "yourMail@provider.com",
-    "subject": "Important subject",
-    "mailText": "Simple text content"
+  "toEmail": "yourMail@provider.com",
+  "subject": "Important subject",
+  "mailText": "Simple text content"
 }
 ```
 
@@ -64,9 +64,9 @@ Or
 
 ```json
 {
-    "toEmail": "theirMail@theirProvider.com",
-    "subject": "Important subject",
-    "mailText": "<p><b>HTML</b> content</p>"
+  "toEmail": "theirMail@theirProvider.com",
+  "subject": "Important subject",
+  "mailText": "<p><b>HTML</b> content</p>"
 }
 ```
 
@@ -86,7 +86,7 @@ Or
 }
 ```
 
-Or 
+Or
 
 4. With complex content to multiple recipients:
 
@@ -105,18 +105,21 @@ Or
 ---
 
 ## IMPORTANT
-The current plugin sends mails vía SMTP. (In the future, it will support other providers), 
-so you need to configure the SMTP settings in your setting of your email provider (Gmail, 
+
+The current plugin sends mails vía SMTP. (In the future, it will support other providers),
+so you need to configure the SMTP settings in your setting of your email provider (Gmail,
 Outlook, etc).
 
 ## Limits
-The usage of SMTP to send mails has a limit of 300 emails per day to 100 different 
+
+The usage of SMTP to send mails has a limit of 300 emails per day to 100 different
 recipients, but check the limits of your email provider.
 
 ---
 
 # Configuration
-The default values can be customized via the plugin config. To do it, create or edit your 
+
+The default values can be customized via the plugin config. To do it, create or edit your
 `plugins.js/plugins.ts` file.
 
 ## Example configuration
@@ -125,12 +128,12 @@ The default values can be customized via the plugin config. To do it, create or 
 
 ```js
 module.exports = ({ env }) => ({
-  'free-mail-sender': {
+  "free-mail-sender": {
     config: {
-      provider: 'gmail', // Check the providers list -> DEFAULT: 'outlook'
-      sender: env('EMAIL_SENDER', ''),
-      pass: env('PASSWORD_SENDER', ''),
-      token: env("TOKEN", ''), // Token generated from Strapi UI
+      provider: "gmail", // Check the providers list -> DEFAULT: 'outlook'
+      sender: env("EMAIL_SENDER", ""),
+      pass: env("PASSWORD_SENDER", ""),
+      token: env("TOKEN", ""), // Token generated from Strapi UI
     },
   },
 });
@@ -142,22 +145,23 @@ Or
 
 ```ts
 export default ({ env }) => ({
-  'free-mail-sender': {
+  "free-mail-sender": {
     config: {
-      provider: 'gmail', // Check the providers list -> DEFAULT: 'outlook'
-      sender: env('EMAIL_SENDER', ''),
-      pass: env('PASSWORD_SENDER', ''),
-      token: env("TOKEN", ''), // Token generated from Strapi UI
+      provider: "gmail", // Check the providers list -> DEFAULT: 'outlook'
+      sender: env("EMAIL_SENDER", ""),
+      pass: env("PASSWORD_SENDER", ""),
+      token: env("TOKEN", ""), // Token generated from Strapi UI
     },
   },
 });
 ```
 
-The plugin configuration **requires** the email and password of the sender. 
-You can set them in the `.env` file using the variables `EMAIL_SENDER` 
+The plugin configuration **requires** the email and password of the sender.
+You can set them in the `.env` file using the variables `EMAIL_SENDER`
 and `PASSWORD_SENDER` as follows:
 
 `.env`
+
 ```env
 JWT_SECRET=...
 
@@ -168,9 +172,11 @@ TOKEN=GeneratedTokenViaStrapiUI
 ```
 
 ## Configuration options extended
+
 1. `provider` - 'gmail' | 'outlook' | 'yahoo' | 'zoho' | 'sendgrid' | 'mailgun' | 'yandex' | 'protonmail' | 'icloud' | 'aol' | 'zohomail' | 'gmx' -> DEFAULT: 'outlook'
 
 ### Providers list
+
 - **Gmail**: 'gmail'
 - **Outlook**: 'outlook'
 - **Yahoo**: 'yahoo'
@@ -185,6 +191,7 @@ TOKEN=GeneratedTokenViaStrapiUI
 - **gmx**: 'gmx'
 
 ---
+
 # Quick Tutorial Step by Step
 
 ## 1. Configure the front-end environment
@@ -208,7 +215,7 @@ const base64ToArrayBuffer = (base64) => {
 
 const arrayBufferToBase64 = (buffer) => {
   const bytes = new Uint8Array(buffer);
-  let binary = '';
+  let binary = "";
   for (let i = 0; i < bytes.byteLength; i++) {
     binary += String.fromCharCode(bytes[i]);
   }
@@ -223,21 +230,21 @@ const arrayBufferToBase64 = (buffer) => {
 const importPublicKey = async (publicKeyBase64) => {
   try {
     const keyData = base64ToArrayBuffer(publicKeyBase64);
-    
+
     const publicKey = await window.crypto.subtle.importKey(
-      'spki',
+      "spki",
       keyData,
       {
-        name: 'RSA-OAEP',
-        hash: 'SHA-256',
+        name: "RSA-OAEP",
+        hash: "SHA-256",
       },
       false,
-      ['encrypt']
+      ["encrypt"],
     );
-    
+
     return publicKey;
   } catch (error) {
-    console.error('Error importing public key:', error);
+    console.error("Error importing public key:", error);
     throw new Error(`Failed to import public key: ${error.message}`);
   }
 };
@@ -249,11 +256,11 @@ const importPublicKey = async (publicKeyBase64) => {
 const generateAESKey = async () => {
   return await window.crypto.subtle.generateKey(
     {
-      name: 'AES-GCM',
+      name: "AES-GCM",
       length: 256,
     },
     true,
-    ['encrypt', 'decrypt']
+    ["encrypt", "decrypt"],
   );
 };
 
@@ -263,7 +270,7 @@ const generateAESKey = async () => {
  * @returns {Promise<ArrayBuffer>} - Raw key data
  */
 const exportAESKey = async (key) => {
-  return await window.crypto.subtle.exportKey('raw', key);
+  return await window.crypto.subtle.exportKey("raw", key);
 };
 
 /**
@@ -275,22 +282,22 @@ const exportAESKey = async (key) => {
 const encryptWithAES = async (data, aesKey) => {
   const encoder = new TextEncoder();
   const dataBuffer = encoder.encode(data);
-  
+
   // Generate random IV (12 bytes for GCM)
   const iv = window.crypto.getRandomValues(new Uint8Array(12));
-  
+
   const encryptedBuffer = await window.crypto.subtle.encrypt(
     {
-      name: 'AES-GCM',
+      name: "AES-GCM",
       iv: iv,
     },
     aesKey,
-    dataBuffer
+    dataBuffer,
   );
-  
+
   return {
     encryptedData: arrayBufferToBase64(encryptedBuffer),
-    iv: arrayBufferToBase64(iv.buffer)
+    iv: arrayBufferToBase64(iv.buffer),
   };
 };
 
@@ -302,15 +309,15 @@ const encryptWithAES = async (data, aesKey) => {
  */
 const encryptAESKeyWithRSA = async (aesKeyRaw, publicKeyBase64) => {
   const publicKey = await importPublicKey(publicKeyBase64);
-  
+
   const encryptedKeyBuffer = await window.crypto.subtle.encrypt(
     {
-      name: 'RSA-OAEP'
+      name: "RSA-OAEP",
     },
     publicKey,
-    aesKeyRaw
+    aesKeyRaw,
   );
-  
+
   return arrayBufferToBase64(encryptedKeyBuffer);
 };
 
@@ -325,25 +332,27 @@ const encryptData = async (data, publicKeyBase64) => {
     // Generate AES key
     const aesKey = await generateAESKey();
     const aesKeyRaw = await exportAESKey(aesKey);
-    
+
     // Encrypt data with AES
     const { encryptedData, iv } = await encryptWithAES(data, aesKey);
-    
+
     // Encrypt AES key with RSA
-    const encryptedAESKey = await encryptAESKeyWithRSA(aesKeyRaw, publicKeyBase64);
-    
+    const encryptedAESKey = await encryptAESKeyWithRSA(
+      aesKeyRaw,
+      publicKeyBase64,
+    );
+
     // Create encrypted package
     const encryptedPackage = {
       encryptedKey: encryptedAESKey,
       encryptedData: encryptedData,
-      iv: iv
+      iv: iv,
     };
-    
+
     // Convert package to base64
     return window.btoa(JSON.stringify(encryptedPackage));
-    
   } catch (error) {
-    console.error('Encryption error:', error);
+    console.error("Encryption error:", error);
     throw new Error(`Encryption failed: ${error.message}`);
   }
 };
@@ -357,13 +366,14 @@ Create the email data object with recipient(s), subject, and content:
 // Email configuration
 const EMAIL = "recipient@example.com";
 const SUBJECT = "Test Email with Hybrid Encryption";
-const MAIL_TEXT = "This message uses hybrid RSA+AES encryption! Now we can send emails of any size without limitations. 🚀🔐";
+const MAIL_TEXT =
+  "This message uses hybrid RSA+AES encryption! Now we can send emails of any size without limitations. 🚀🔐";
 
 // Create email data object
 const mail = JSON.stringify({
   toEmail: [EMAIL],
   subject: SUBJECT,
-  mailText: MAIL_TEXT
+  mailText: MAIL_TEXT,
 });
 
 console.log("Email data length:", mail.length, "bytes");
@@ -390,15 +400,18 @@ Make a `POST` request to the plugin endpoint using the encrypted email:
 ```js
 const sendEncryptedMail = async (encryptedMail) => {
   try {
-    const response = await fetch("http://<STRAPI_URL>/api/free-mail-sender/send-email", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const response = await fetch(
+      "http://<STRAPI_URL>/api/free-mail-sender/send-email",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          mail: encryptedMail, // Encrypted email data
+        }),
       },
-      body: JSON.stringify({
-        mail: encryptedMail, // Encrypted email data
-      }),
-    });
+    );
 
     if (response.ok) {
       const result = await response.json();
@@ -407,7 +420,7 @@ const sendEncryptedMail = async (encryptedMail) => {
     } else {
       const error = await response.json();
       console.error("Error sending the email:", error);
-      throw new Error(`Server error: ${error.message || 'Unknown error'}`);
+      throw new Error(`Server error: ${error.message || "Unknown error"}`);
     }
   } catch (error) {
     console.error("Network error:", error);
@@ -422,4 +435,5 @@ await sendEncryptedMail(encryptedMail);
 ---
 
 # Contributing
+
 The current development is in progress, so feel free to contribute to the project.

@@ -26,14 +26,14 @@ const checkFields = (fields) => {
  */
 const importAESKey = async (keyBuffer) => {
   return await crypto.webcrypto.subtle.importKey(
-    'raw',
+    "raw",
     keyBuffer,
     {
-      name: 'AES-GCM',
+      name: "AES-GCM",
       length: 256,
     },
     false,
-    ['decrypt']
+    ["decrypt"],
   );
 };
 
@@ -51,7 +51,7 @@ const decryptAESKeyWithRSA = (encryptedAESKey, privateKey) => {
       padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
       oaepHash: "sha256",
     },
-    keyBuffer
+    keyBuffer,
   );
 };
 
@@ -65,16 +65,16 @@ const decryptAESKeyWithRSA = (encryptedAESKey, privateKey) => {
 const decryptWithAES = async (encryptedData, ivBase64, aesKey) => {
   const encryptedBuffer = Buffer.from(encryptedData, "base64");
   const iv = Buffer.from(ivBase64, "base64");
-  
+
   const decryptedBuffer = await crypto.webcrypto.subtle.decrypt(
     {
-      name: 'AES-GCM',
+      name: "AES-GCM",
       iv: iv,
     },
     aesKey,
-    encryptedBuffer
+    encryptedBuffer,
   );
-  
+
   return new TextDecoder().decode(decryptedBuffer);
 };
 
@@ -88,11 +88,13 @@ const decryptData = async (ctx, encryptedPackage, privateKey) => {
    */
   try {
     privateKey = `-----BEGIN PRIVATE KEY-----\n${privateKey}\n-----END PRIVATE KEY-----`;
-    
+
     // Parse the encrypted package
     let packageData;
     try {
-      const packageJson = Buffer.from(encryptedPackage, 'base64').toString('utf-8');
+      const packageJson = Buffer.from(encryptedPackage, "base64").toString(
+        "utf-8",
+      );
       packageData = JSON.parse(packageJson);
     } catch (parseError) {
       // Fallback to old encryption method if parsing fails
@@ -103,29 +105,28 @@ const decryptData = async (ctx, encryptedPackage, privateKey) => {
           padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
           oaepHash: "sha256",
         },
-        buffer
+        buffer,
       );
       return decryptedData.toString("utf8");
     }
-    
+
     // Extract components
     const { encryptedKey, encryptedData, iv } = packageData;
-    
+
     if (!encryptedKey || !encryptedData || !iv) {
       throw new Error("Invalid encrypted package format");
     }
-    
+
     // Decrypt AES key with RSA
     const aesKeyBuffer = decryptAESKeyWithRSA(encryptedKey, privateKey);
-    
+
     // Import AES key
     const aesKey = await importAESKey(aesKeyBuffer);
-    
+
     // Decrypt data with AES
     const decryptedData = await decryptWithAES(encryptedData, iv, aesKey);
-    
+
     return decryptedData;
-    
   } catch (error) {
     console.error("Decryption error:", error);
     ctx.body = { error: "Invalid token", sent: false };
@@ -148,7 +149,7 @@ const encryptData = (data, publicKey) => {
       padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
       oaepHash: "sha256",
     },
-    buffer
+    buffer,
   );
   return encryptedData.toString("base64");
 };

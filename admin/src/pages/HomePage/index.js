@@ -26,19 +26,25 @@ const HomePage = () => {
 
   // Convertir base64 a PEM format
   const formatToPEM = (base64Key, type) => {
-    const header = type === 'public' ? '-----BEGIN PUBLIC KEY-----' : '-----BEGIN PRIVATE KEY-----';
-    const footer = type === 'public' ? '-----END PUBLIC KEY-----' : '-----END PRIVATE KEY-----';
-    
+    const header =
+      type === "public"
+        ? "-----BEGIN PUBLIC KEY-----"
+        : "-----BEGIN PRIVATE KEY-----";
+    const footer =
+      type === "public"
+        ? "-----END PUBLIC KEY-----"
+        : "-----END PRIVATE KEY-----";
+
     // Dividir en líneas de 64 caracteres
     const lines = base64Key.match(/.{1,64}/g) || [];
-    return [header, ...lines, footer].join('\n');
+    return [header, ...lines, footer].join("\n");
   };
 
   // Generar las claves públicas y privadas RSA compatibles con el sistema híbrido
   const handleGenerateKeys = async () => {
     try {
       console.log("🔑 Generating RSA key pair...");
-      
+
       const keyPair = await crypto.subtle.generateKey(
         {
           name: "RSA-OAEP",
@@ -47,17 +53,17 @@ const HomePage = () => {
           hash: "SHA-256", // Hash utilizado (compatible con el backend)
         },
         true,
-        ["encrypt", "decrypt"] // Operaciones disponibles
+        ["encrypt", "decrypt"], // Operaciones disponibles
       );
 
       // Exportar claves en formato correcto
       const publicKeyArrayBuffer = await crypto.subtle.exportKey(
         "spki", // Formato SPKI para la clave pública
-        keyPair.publicKey
+        keyPair.publicKey,
       );
       const privateKeyArrayBuffer = await crypto.subtle.exportKey(
         "pkcs8", // Formato PKCS#8 para la clave privada
-        keyPair.privateKey
+        keyPair.privateKey,
       );
 
       // Convertir las claves a base64
@@ -71,7 +77,6 @@ const HomePage = () => {
       // Establecer las claves en el estado
       setPublicKey(publicKeyBase64);
       setPrivateKey(privateKeyBase64);
-      
     } catch (error) {
       console.error("❌ Error generating keys:", error);
       alert("Error generando las llaves: " + error.message);
@@ -97,40 +102,43 @@ const HomePage = () => {
 
     try {
       console.log("🧪 Testing key compatibility...");
-      
+
       // Simular encriptación híbrida (como en el frontend)
       const testData = "Test message for key compatibility";
-      
+
       // Generar clave AES
       const aesKey = await crypto.subtle.generateKey(
-        { name: 'AES-GCM', length: 256 },
+        { name: "AES-GCM", length: 256 },
         true,
-        ['encrypt', 'decrypt']
+        ["encrypt", "decrypt"],
       );
-      
+
       // Exportar clave AES
-      const aesKeyRaw = await crypto.subtle.exportKey('raw', aesKey);
-      
+      const aesKeyRaw = await crypto.subtle.exportKey("raw", aesKey);
+
       // Importar clave pública RSA
-      const publicKeyBuffer = Uint8Array.from(atob(publicKey), c => c.charCodeAt(0));
-      const importedPublicKey = await crypto.subtle.importKey(
-        'spki',
-        publicKeyBuffer.buffer,
-        { name: 'RSA-OAEP', hash: 'SHA-256' },
-        false,
-        ['encrypt']
+      const publicKeyBuffer = Uint8Array.from(atob(publicKey), (c) =>
+        c.charCodeAt(0),
       );
-      
+      const importedPublicKey = await crypto.subtle.importKey(
+        "spki",
+        publicKeyBuffer.buffer,
+        { name: "RSA-OAEP", hash: "SHA-256" },
+        false,
+        ["encrypt"],
+      );
+
       // Encriptar clave AES con RSA
       const encryptedAESKey = await crypto.subtle.encrypt(
-        { name: 'RSA-OAEP' },
+        { name: "RSA-OAEP" },
         importedPublicKey,
-        aesKeyRaw
+        aesKeyRaw,
       );
-      
+
       console.log("✅ Key compatibility test passed!");
-      alert("✅ Claves generadas correctamente y son compatibles con el sistema híbrido");
-      
+      alert(
+        "✅ Claves generadas correctamente y son compatibles con el sistema híbrido",
+      );
     } catch (error) {
       console.error("❌ Key compatibility test failed:", error);
       alert("❌ Error en las claves: " + error.message);
@@ -139,11 +147,14 @@ const HomePage = () => {
 
   // Copiar al portapapeles
   const copyToClipboard = (text, type) => {
-    navigator.clipboard.writeText(text).then(() => {
-      alert(`${type} copiada al portapapeles`);
-    }).catch(err => {
-      console.error("Error copying to clipboard:", err);
-    });
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        alert(`${type} copiada al portapapeles`);
+      })
+      .catch((err) => {
+        console.error("Error copying to clipboard:", err);
+      });
   };
 
   return (
@@ -153,15 +164,16 @@ const HomePage = () => {
         style={{ marginBottom: "10px" }}
         lineHeight="lg"
       >
-        🔐 Generador de Claves 
+        🔐 Generador de Claves
       </Typography>
-      
+
       <Typography
         variant="beta"
         style={{ marginBottom: "20px", color: "#d32f2f" }}
         lineHeight="lg"
       >
-        ⚠️ IMPORTANTE: Una vez generadas, guarda ambos tokens. No se pueden recuperar.
+        ⚠️ IMPORTANTE: Una vez generadas, guarda ambos tokens. No se pueden
+        recuperar.
       </Typography>
 
       <Stack horizontal spacing={4} style={{ marginBottom: "20px" }}>
@@ -182,13 +194,17 @@ const HomePage = () => {
       {publicKey && (
         <Box marginTop={6}>
           <Box marginBottom={4}>
-            <Stack horizontal spacing={2} style={{ alignItems: "center", marginBottom: "10px" }}>
+            <Stack
+              horizontal
+              spacing={2}
+              style={{ alignItems: "center", marginBottom: "10px" }}
+            >
               <Typography variant="delta" fontWeight="bold">
                 🌐 Cliente Token (Clave Pública):
               </Typography>
-              <Button 
-                variant="tertiary" 
-                size="S" 
+              <Button
+                variant="tertiary"
+                size="S"
                 onClick={() => copyToClipboard(publicKey, "Clave pública")}
               >
                 📋 Copiar
@@ -198,25 +214,30 @@ const HomePage = () => {
               value={publicKey}
               readOnly
               rows={3}
-              style={{ 
+              style={{
                 marginBottom: "10px",
                 fontFamily: "monospace",
-                fontSize: "12px"
+                fontSize: "12px",
               }}
             />
             <Typography variant="omega" style={{ color: "#666" }}>
-              💡 Usa esta clave en tu aplicación React/frontend para encriptar emails
+              💡 Usa esta clave en tu aplicación React/frontend para encriptar
+              emails
             </Typography>
           </Box>
 
           <Box marginBottom={4}>
-            <Stack horizontal spacing={2} style={{ alignItems: "center", marginBottom: "10px" }}>
+            <Stack
+              horizontal
+              spacing={2}
+              style={{ alignItems: "center", marginBottom: "10px" }}
+            >
               <Typography variant="delta" fontWeight="bold">
                 🔒 Server Token (Clave Privada):
               </Typography>
-              <Button 
-                variant="tertiary" 
-                size="S" 
+              <Button
+                variant="tertiary"
+                size="S"
                 onClick={() => copyToClipboard(privateKey, "Clave privada")}
               >
                 📋 Copiar
@@ -226,23 +247,28 @@ const HomePage = () => {
               value={privateKey}
               readOnly
               rows={4}
-              style={{ 
+              style={{
                 marginBottom: "10px",
                 fontFamily: "monospace",
-                fontSize: "12px"
+                fontSize: "12px",
               }}
             />
             <Typography variant="omega" style={{ color: "#666" }}>
-              💡 Configura esta clave en las variables de entorno de Strapi (FREE_MAIL_SENDER_TOKEN)
+              💡 Configura esta clave en las variables de entorno de Strapi
+              (FREE_MAIL_SENDER_TOKEN)
             </Typography>
           </Box>
 
-          <Box 
-            background="primary100" 
-            padding={3} 
+          <Box
+            background="primary100"
+            padding={3}
             style={{ borderRadius: "4px", marginTop: "20px" }}
           >
-            <Typography variant="omega" fontWeight="semiBold" style={{ color: "#0066cc" }}>
+            <Typography
+              variant="omega"
+              fontWeight="semiBold"
+              style={{ color: "#0066cc" }}
+            >
               ✅ Sistema Híbrido RSA + AES:
             </Typography>
             <ul style={{ marginTop: "10px", paddingLeft: "20px" }}>
@@ -303,7 +329,7 @@ const HomePage = () => {
                 <Typography marginBottom={2}>
                   Configura las claves en tus aplicaciones:
                 </Typography>
-                
+
                 <Typography variant="delta" fontWeight="bold" marginBottom={1}>
                   Frontend (.env):
                 </Typography>
@@ -314,7 +340,7 @@ const HomePage = () => {
                   style={{ borderRadius: "4px" }}
                 >
                   <Typography variant="code">
-                    {`REACT_APP_PUBLIC_KEY=${publicKey ? publicKey.substring(0, 50) + '...' : 'TU_CLAVE_PUBLICA_AQUI'}`}
+                    {`REACT_APP_PUBLIC_KEY=${publicKey ? publicKey.substring(0, 50) + "..." : "TU_CLAVE_PUBLICA_AQUI"}`}
                   </Typography>
                 </Box>
 
@@ -328,7 +354,7 @@ const HomePage = () => {
                   style={{ borderRadius: "4px" }}
                 >
                   <Typography variant="code">
-                    {`FREE_MAIL_SENDER_TOKEN=${privateKey ? privateKey.substring(0, 50) + '...' : 'TU_CLAVE_PRIVADA_AQUI'}`}
+                    {`FREE_MAIL_SENDER_TOKEN=${privateKey ? privateKey.substring(0, 50) + "..." : "TU_CLAVE_PRIVADA_AQUI"}`}
                   </Typography>
                 </Box>
               </Box>
@@ -346,7 +372,7 @@ const HomePage = () => {
                 >
                   <Typography variant="code">
                     <pre style={{ fontSize: "11px", overflow: "auto" }}>
-{`// Funciones auxiliares de conversión
+                      {`// Funciones auxiliares de conversión
 const base64ToArrayBuffer = (base64) => {
   const binaryString = window.atob(base64);
   const bytes = new Uint8Array(binaryString.length);
@@ -459,7 +485,7 @@ const encryptData = async (data, publicKeyBase64) => {
                 >
                   <Typography variant="code">
                     <pre style={{ fontSize: "11px" }}>
-{`const sendEmail = async () => {
+                      {`const sendEmail = async () => {
   const mail = JSON.stringify({
     toEmail: ["usuario@ejemplo.com"],
     subject: "Mi asunto",
